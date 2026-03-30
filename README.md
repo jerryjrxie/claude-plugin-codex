@@ -41,6 +41,24 @@ Then restart Codex, enable the `claude` plugin from the marketplace the script s
 $claude-setup
 ```
 
+## Install In Codex
+
+Once you open the Plugin Directory:
+
+1. Search or browse for `Claude Code`, then open its details.
+2. Select the install button. In the app, choose `Add to Codex`. In the CLI, choose `Install plugin`.
+3. If prompted, complete any required authentication.
+4. Start a new thread.
+5. Use the plugin through its bundled commands in the prompt window:
+
+```text
+$claude-setup
+$claude-review
+$claude-rescue investigate why the tests are failing
+```
+
+The plugin card is for installation and management. Day-to-day use happens through the `$claude-*` skills.
+
 ## Repo Marketplace
 
 This repo also includes a repo-local marketplace at [`.agents/plugins/marketplace.json`](/Users/jerry.xie/personal/claude-plugin-codex/.agents/plugins/marketplace.json), which points at [`plugins/claude-plugin-codex`](/Users/jerry.xie/personal/claude-plugin-codex/plugins/claude-plugin-codex) in the structure described by the official docs.
@@ -115,6 +133,7 @@ After install, you should see:
 
 - the `$claude-*` skills listed below
 - the `claude-rescue` subagent
+- the `Claude Code` plugin in the Plugin Directory
 
 One simple first run is:
 

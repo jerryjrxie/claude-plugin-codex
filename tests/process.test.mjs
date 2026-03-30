@@ -53,3 +53,71 @@ test("terminateProcessTree treats missing Windows processes as already stopped",
   assert.equal(outcome.result.status, 128);
   assert.match(outcome.result.stdout, /not found/i);
 });
+
+test("terminateProcessTree resolves the real process group id on unix", () => {
+  const killCalls = [];
+  const outcome = terminateProcessTree(1234, {
+    platform: "darwin",
+    runCommandImpl(command, args) {
+      if (command === "ps") {
+        return {
+          command,
+          args,
+          status: 0,
+          signal: null,
+          stdout: "4321\n",
+          stderr: "",
+          error: null
+        };
+      }
+
+      throw new Error(`Unexpected command: ${command}`);
+    },
+    killImpl(pid, signal) {
+      killCalls.push({ pid, signal });
+    }
+  });
+
+  assert.deepEqual(killCalls, [{ pid: -4321, signal: "SIGTERM" }]);
+  assert.equal(outcome.delivered, true);
+  assert.equal(outcome.method, "process-group");
+  assert.equal(outcome.processGroupId, 4321);
+});
+
+test("terminateProcessTree falls back to the pid when group kill is not allowed", () => {
+  const killCalls = [];
+  const outcome = terminateProcessTree(1234, {
+    platform: "darwin",
+    runCommandImpl(command, args) {
+      if (command === "ps") {
+        return {
+          command,
+          args,
+          status: 0,
+          signal: null,
+          stdout: "4321\n",
+          stderr: "",
+          error: null
+        };
+      }
+
+      throw new Error(`Unexpected command: ${command}`);
+    },
+    killImpl(pid, signal) {
+      killCalls.push({ pid, signal });
+      if (pid === -4321) {
+        const error = new Error("kill EPERM");
+        error.code = "EPERM";
+        throw error;
+      }
+    }
+  });
+
+  assert.deepEqual(killCalls, [
+    { pid: -4321, signal: "SIGTERM" },
+    { pid: 1234, signal: "SIGTERM" }
+  ]);
+  assert.equal(outcome.delivered, true);
+  assert.equal(outcome.method, "process");
+  assert.equal(outcome.processGroupId, 4321);
+});

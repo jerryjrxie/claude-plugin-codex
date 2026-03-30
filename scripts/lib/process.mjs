@@ -51,6 +51,31 @@ function looksLikeMissingProcessMessage(text) {
   return /not found|no running instance|cannot find|does not exist|no such process/i.test(text);
 }
 
+function resolveProcessGroupId(pid, runCommandImpl, options = {}) {
+  const result = runCommandImpl("ps", ["-o", "pgid=", "-p", String(pid)], {
+    cwd: options.cwd,
+    env: options.env
+  });
+
+  if (result.error) {
+    if (result.error.code === "ENOENT") {
+      return null;
+    }
+    throw result.error;
+  }
+
+  if (result.status !== 0) {
+    const combinedOutput = `${result.stderr}\n${result.stdout}`.trim();
+    if (looksLikeMissingProcessMessage(combinedOutput)) {
+      return null;
+    }
+    return null;
+  }
+
+  const parsed = Number.parseInt(String(result.stdout ?? "").trim(), 10);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 export function terminateProcessTree(pid, options = {}) {
   if (!Number.isFinite(pid)) {
     return { attempted: false, delivered: false, method: null };
@@ -94,23 +119,26 @@ export function terminateProcessTree(pid, options = {}) {
     throw new Error(formatCommandFailure(result));
   }
 
+  const processGroupId = resolveProcessGroupId(pid, runCommandImpl, options);
   try {
-    killImpl(-pid, "SIGTERM");
-    return { attempted: true, delivered: true, method: "process-group" };
-  } catch (error) {
-    if (error?.code !== "ESRCH") {
-      try {
-        killImpl(pid, "SIGTERM");
-        return { attempted: true, delivered: true, method: "process" };
-      } catch (innerError) {
-        if (innerError?.code === "ESRCH") {
-          return { attempted: true, delivered: false, method: "process" };
-        }
-        throw innerError;
-      }
+    if (Number.isFinite(processGroupId)) {
+      killImpl(-processGroupId, "SIGTERM");
+      return { attempted: true, delivered: true, method: "process-group", processGroupId };
     }
+  } catch (error) {
+    if (error?.code === "ESRCH") {
+      return { attempted: true, delivered: false, method: "process-group", processGroupId };
+    }
+  }
 
-    return { attempted: true, delivered: false, method: "process-group" };
+  try {
+    killImpl(pid, "SIGTERM");
+    return { attempted: true, delivered: true, method: "process", processGroupId };
+  } catch (error) {
+    if (error?.code === "ESRCH") {
+      return { attempted: true, delivered: false, method: "process", processGroupId };
+    }
+    throw error;
   }
 }
 
