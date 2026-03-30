@@ -69,23 +69,14 @@ copy_repo_for_personal_install() {
   rm -rf "$PERSONAL_PLUGIN_DIR"
   mkdir -p "$PERSONAL_PLUGIN_DIR"
 
-  if [[ "$RUNNING_FROM_PIPE" -eq 1 ]]; then
-    INSTALL_TMP_DIR="$(mktemp -d)"
-    trap 'rm -rf "${INSTALL_TMP_DIR:-}"' EXIT
-    git clone --depth=1 "$REPO_GIT_URL" "${INSTALL_TMP_DIR}/claude-plugin-codex" >/dev/null 2>&1
-    rsync -a \
-      --exclude '.git' \
-      --exclude 'node_modules' \
-      --exclude '.DS_Store' \
-      "${INSTALL_TMP_DIR}/claude-plugin-codex/" "${PERSONAL_PLUGIN_DIR}/"
-    return
-  fi
-
+  INSTALL_TMP_DIR="$(mktemp -d)"
+  trap 'rm -rf "${INSTALL_TMP_DIR:-}"' EXIT
+  git clone --depth=1 "$REPO_GIT_URL" "${INSTALL_TMP_DIR}/claude-plugin-codex" >/dev/null 2>&1
   rsync -a \
     --exclude '.git' \
     --exclude 'node_modules' \
     --exclude '.DS_Store' \
-    "${REPO_ROOT}/" "${PERSONAL_PLUGIN_DIR}/"
+    "${INSTALL_TMP_DIR}/claude-plugin-codex/" "${PERSONAL_PLUGIN_DIR}/"
 }
 
 copy_repo_for_repo_install() {
