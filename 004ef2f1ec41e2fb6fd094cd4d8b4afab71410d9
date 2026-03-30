@@ -1,0 +1,31 @@
+marketplace.json
+  eb5098c366a2d2dd 9-10,16-17
+README.md
+  eb5098c366a2d2dd 35-36,46,52,56,67
+.agents/plugins/marketplace.json
+  eb5098c366a2d2dd 2,4,11
+tests/manifest.test.mjs
+  eb5098c366a2d2dd 23,28,36,41
+install.sh
+  eb5098c366a2d2dd 18-19,23-24,35-36,68,70,85-88,97,102-106,109-115,121-123,130-131,135-145,156,183-189,212,258-262
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.22",
+  "base_commit_sha": "004ef2f1ec41e2fb6fd094cd4d8b4afab71410d9",
+  "prompts": {
+    "eb5098c366a2d2dd": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019d40b5-c1da-7470-b9be-5e70d293b7b8",
+        "model": "gpt-5.4"
+      },
+      "human_author": "Jerry Xie <jerry.xie@ziphq.com>",
+      "messages": [],
+      "total_additions": 78,
+      "total_deletions": 61,
+      "accepted_lines": 75,
+      "overriden_lines": 0
+    }
+  }
+}
