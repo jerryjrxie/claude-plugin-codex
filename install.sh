@@ -15,15 +15,14 @@ fi
 
 PERSONAL_MARKETPLACE_ROOT="${HOME}/.agents/plugins"
 PERSONAL_MARKETPLACE_FILE="${PERSONAL_MARKETPLACE_ROOT}/marketplace.json"
-PERSONAL_PLUGIN_DIR="${PERSONAL_MARKETPLACE_ROOT}/claude-plugin-codex"
+PERSONAL_PLUGIN_DIR="${HOME}/.codex/plugins/claude-plugin-codex"
+LEGACY_PERSONAL_PLUGIN_DIR="${PERSONAL_MARKETPLACE_ROOT}/claude-plugin-codex"
 INSTALL_TMP_DIR=""
 REPO_MARKETPLACE_DIR=""
 REPO_MARKETPLACE_FILE=""
+REPO_PLUGIN_DIR=""
+LEGACY_REPO_PLUGIN_DIR=""
 TTY_INPUT="/dev/tty"
-if [[ -n "$REPO_ROOT" ]]; then
-  REPO_MARKETPLACE_DIR="${REPO_ROOT}/.agents/plugins"
-  REPO_MARKETPLACE_FILE="${REPO_MARKETPLACE_DIR}/marketplace.json"
-fi
 
 usage() {
   cat <<'EOF'
@@ -33,8 +32,8 @@ Usage:
   ./install.sh --repo
 
 Options:
-  --personal         Install into the personal marketplace at ~/.agents/plugins
-  --repo             Set up the repo-local marketplace at ./.agents/plugins
+  --personal         Install into ~/.codex/plugins and register in ~/.agents/plugins
+  --repo             Install into ./plugins and register in ./.agents/plugins
   -h, --help         Show this help text
 
 If no mode is provided, the script runs in interactive mode and asks whether you
@@ -66,7 +65,9 @@ pick_mode_interactive() {
 
 copy_repo_for_personal_install() {
   mkdir -p "$PERSONAL_MARKETPLACE_ROOT"
+  mkdir -p "$(dirname "$PERSONAL_PLUGIN_DIR")"
   rm -rf "$PERSONAL_PLUGIN_DIR"
+  rm -rf "$LEGACY_PERSONAL_PLUGIN_DIR"
   mkdir -p "$PERSONAL_PLUGIN_DIR"
 
   INSTALL_TMP_DIR="$(mktemp -d)"
@@ -81,9 +82,10 @@ copy_repo_for_personal_install() {
 
 copy_repo_for_repo_install() {
   mkdir -p "$REPO_MARKETPLACE_DIR"
-  local repo_plugin_dir="${REPO_MARKETPLACE_DIR}/claude-plugin-codex"
-  rm -rf "$repo_plugin_dir"
-  mkdir -p "$repo_plugin_dir"
+  mkdir -p "$(dirname "$REPO_PLUGIN_DIR")"
+  rm -rf "$REPO_PLUGIN_DIR"
+  rm -rf "$LEGACY_REPO_PLUGIN_DIR"
+  mkdir -p "$REPO_PLUGIN_DIR"
 
   INSTALL_TMP_DIR="$(mktemp -d)"
   trap 'rm -rf "${INSTALL_TMP_DIR:-}"' EXIT
@@ -92,53 +94,54 @@ copy_repo_for_repo_install() {
     --exclude '.git' \
     --exclude 'node_modules' \
     --exclude '.DS_Store' \
-    "${INSTALL_TMP_DIR}/claude-plugin-codex/" "${repo_plugin_dir}/"
+    "${INSTALL_TMP_DIR}/claude-plugin-codex/" "${REPO_PLUGIN_DIR}/"
 }
 
 write_repo_marketplace() {
   mkdir -p "$REPO_MARKETPLACE_DIR"
-  cat > "$REPO_MARKETPLACE_FILE" <<'EOF'
-{
-  "name": "jerryjrxie-local",
-  "interface": {
-    "displayName": "Jerry Xie Local Plugins"
-  },
-  "plugins": [
-    {
-      "name": "claude",
-      "source": {
-        "source": "local",
-        "path": "./claude-plugin-codex"
-      },
-      "policy": {
-        "installation": "AVAILABLE",
-        "authentication": "ON_INSTALL"
-      },
-      "category": "Coding"
-    }
-  ]
-}
-EOF
+  write_or_update_marketplace \
+    "$REPO_MARKETPLACE_FILE" \
+    "local-repo" \
+    "Local Repo Plugins" \
+    "./plugins/claude-plugin-codex"
 }
 
-write_or_update_personal_marketplace() {
-  mkdir -p "$PERSONAL_MARKETPLACE_ROOT"
-  python3 - "$PERSONAL_MARKETPLACE_FILE" <<'PY'
+write_or_update_marketplace() {
+  local marketplace_file="$1"
+  local default_name="$2"
+  local default_display_name="$3"
+  local source_path="$4"
+
+  python3 - "$marketplace_file" "$default_name" "$default_display_name" "$source_path" <<'PY'
 import json
 import os
 import sys
 
 marketplace_file = sys.argv[1]
+default_name = sys.argv[2]
+default_display_name = sys.argv[3]
+source_path = sys.argv[4]
 
 if os.path.exists(marketplace_file):
     with open(marketplace_file, "r", encoding="utf8") as f:
         marketplace = json.load(f)
 else:
     marketplace = {
-        "name": "personal",
-        "interface": {"displayName": "Personal Plugins"},
+        "name": default_name,
+        "interface": {"displayName": default_display_name},
         "plugins": []
     }
+
+if not isinstance(marketplace, dict):
+    marketplace = {}
+
+marketplace.setdefault("name", default_name)
+
+interface = marketplace.get("interface")
+if not isinstance(interface, dict):
+    interface = {}
+interface.setdefault("displayName", default_display_name)
+marketplace["interface"] = interface
 
 plugins = marketplace.get("plugins")
 if not isinstance(plugins, list):
@@ -150,7 +153,7 @@ entry = {
     "version": "1.0.0",
     "source": {
         "source": "local",
-        "path": "./claude-plugin-codex"
+        "path": source_path
     },
     "policy": {
         "installation": "AVAILABLE",
@@ -177,6 +180,15 @@ with open(marketplace_file, "w", encoding="utf8") as f:
 PY
 }
 
+write_or_update_personal_marketplace() {
+  mkdir -p "$PERSONAL_MARKETPLACE_ROOT"
+  write_or_update_marketplace \
+    "$PERSONAL_MARKETPLACE_FILE" \
+    "personal" \
+    "Personal Plugins" \
+    "./.codex/plugins/claude-plugin-codex"
+}
+
 print_personal_next_steps() {
   cat <<EOF
 Installed Claude Code plugin for Codex into your personal marketplace.
@@ -197,7 +209,7 @@ print_repo_next_steps() {
 Set up the repo-local marketplace for this checkout.
 
 Marketplace: ${REPO_MARKETPLACE_FILE}
-Plugin copy: ${REPO_MARKETPLACE_DIR}/claude-plugin-codex
+Plugin copy: ${REPO_PLUGIN_DIR}
 
 Next steps:
 1. Restart Codex if it was already open in this repo.
@@ -243,11 +255,11 @@ case "$INSTALL_MODE" in
     print_personal_next_steps
     ;;
   repo)
-    if [[ "$RUNNING_FROM_PIPE" -eq 1 ]]; then
-      REPO_ROOT="$PWD"
-      REPO_MARKETPLACE_DIR="${REPO_ROOT}/.agents/plugins"
-      REPO_MARKETPLACE_FILE="${REPO_MARKETPLACE_DIR}/marketplace.json"
-    fi
+    REPO_ROOT="$PWD"
+    REPO_MARKETPLACE_DIR="${REPO_ROOT}/.agents/plugins"
+    REPO_MARKETPLACE_FILE="${REPO_MARKETPLACE_DIR}/marketplace.json"
+    REPO_PLUGIN_DIR="${REPO_ROOT}/plugins/claude-plugin-codex"
+    LEGACY_REPO_PLUGIN_DIR="${REPO_MARKETPLACE_DIR}/claude-plugin-codex"
     copy_repo_for_repo_install
     write_repo_marketplace
     print_repo_next_steps

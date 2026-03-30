@@ -20,10 +20,12 @@ test("marketplace manifest exposes the claude plugin under the jerryjrxie namesp
   assert.equal(marketplace.name, "jerryjrxie");
   assert.equal(marketplace.plugins.length, 1);
   assert.equal(marketplace.plugins[0].name, "claude");
+  assert.equal(marketplace.plugins[0].version, "1.0.0");
   assert.deepEqual(marketplace.plugins[0].source, {
     source: "local",
     path: "./"
   });
+  assert.equal(marketplace.plugins[0].policy.authentication, "ON_INSTALL");
 });
 
 test("repo-local marketplace exposes the claude plugin for Codex discovery", () => {
@@ -31,11 +33,11 @@ test("repo-local marketplace exposes the claude plugin for Codex discovery", () 
     fs.readFileSync(path.join(ROOT, ".agents", "plugins", "marketplace.json"), "utf8")
   );
 
-  assert.equal(marketplace.name, "jerryjrxie-local");
+  assert.equal(marketplace.name, "local-repo");
   assert.equal(marketplace.plugins.length, 1);
   assert.equal(marketplace.plugins[0].name, "claude");
   assert.deepEqual(marketplace.plugins[0].source, {
     source: "local",
-    path: "./"
+    path: "./plugins/claude-plugin-codex"
   });
 });

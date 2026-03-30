@@ -32,8 +32,8 @@ curl -fsSL https://raw.githubusercontent.com/jerryjrxie/claude-plugin-codex/main
 
 That opens a simple interactive installer where you can choose:
 
-- `1` for a personal install in `~/.agents/plugins`
-- `2` for a repo-local install in `./.agents/plugins` when you are running from a local checkout
+- `1` for a personal install in `~/.codex/plugins`
+- `2` for a repo-local install in `./plugins`
 
 Then restart Codex, enable the `claude` plugin from the marketplace the script set up, and run:
 
@@ -43,17 +43,17 @@ $claude-setup
 
 ## Repo Marketplace
 
-This repo also includes a repo-local marketplace at [`.agents/plugins/marketplace.json`](/Users/jerry.xie/personal/claude-plugin-codex/.agents/plugins/marketplace.json), which matches the structure described in the official docs.
+This repo also includes a repo-local marketplace at [`.agents/plugins/marketplace.json`](/Users/jerry.xie/personal/claude-plugin-codex/.agents/plugins/marketplace.json), which points at [`plugins/claude-plugin-codex`](/Users/jerry.xie/personal/claude-plugin-codex/plugins/claude-plugin-codex) in the structure described by the official docs.
 
 If you are developing the plugin locally, cloning the repo is enough for Codex to discover that marketplace when it supports repo marketplaces directly.
 
 ## Personal Marketplace
 
-The personal install mode copies this repo into `~/.agents/plugins/claude-plugin-codex` and updates `~/.agents/plugins/marketplace.json` so Codex can load it through the documented personal marketplace flow.
+The personal install mode clones this repo into a temporary directory, copies the plugin bundle into `~/.codex/plugins/claude-plugin-codex`, and updates `~/.agents/plugins/marketplace.json` so Codex can load it through the documented personal marketplace flow.
 
 If you want to do that manually, the important files are:
 
-- the plugin bundle at `~/.agents/plugins/claude-plugin-codex`
+- the plugin bundle at `~/.codex/plugins/claude-plugin-codex`
 - the personal marketplace file at `~/.agents/plugins/marketplace.json`
 
 ## Non-Interactive Install
@@ -64,7 +64,7 @@ If you want to script installation, use one of these:
 curl -fsSL https://raw.githubusercontent.com/jerryjrxie/claude-plugin-codex/main/install.sh | bash -s -- --personal
 ```
 
-Repo-local install requires a clone first:
+Repo-local install writes into the current repository:
 
 ```bash
 git clone https://github.com/jerryjrxie/claude-plugin-codex.git

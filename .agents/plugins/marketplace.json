@@ -1,14 +1,14 @@
 {
-  "name": "jerryjrxie-local",
+  "name": "local-repo",
   "interface": {
-    "displayName": "Jerry Xie Local Plugins"
+    "displayName": "Local Repo Plugins"
   },
   "plugins": [
     {
       "name": "claude",
       "source": {
         "source": "local",
-        "path": "./"
+        "path": "./plugins/claude-plugin-codex"
       },
       "policy": {
         "installation": "AVAILABLE",
