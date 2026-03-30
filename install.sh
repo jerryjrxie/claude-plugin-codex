@@ -16,6 +16,7 @@ fi
 PERSONAL_MARKETPLACE_ROOT="${HOME}/.agents/plugins"
 PERSONAL_MARKETPLACE_FILE="${PERSONAL_MARKETPLACE_ROOT}/marketplace.json"
 PERSONAL_PLUGIN_DIR="${PERSONAL_MARKETPLACE_ROOT}/claude-plugin-codex"
+INSTALL_TMP_DIR=""
 REPO_MARKETPLACE_DIR=""
 REPO_MARKETPLACE_FILE=""
 if [[ -n "$REPO_ROOT" ]]; then
@@ -63,15 +64,14 @@ copy_repo_for_personal_install() {
   mkdir -p "$PERSONAL_PLUGIN_DIR"
 
   if [[ "$RUNNING_FROM_PIPE" -eq 1 ]]; then
-    local tmp_dir=""
-    tmp_dir="$(mktemp -d)"
-    trap 'rm -rf "$tmp_dir"' EXIT
-    git clone --depth=1 "$REPO_GIT_URL" "$tmp_dir/claude-plugin-codex" >/dev/null 2>&1
+    INSTALL_TMP_DIR="$(mktemp -d)"
+    trap 'rm -rf "${INSTALL_TMP_DIR:-}"' EXIT
+    git clone --depth=1 "$REPO_GIT_URL" "${INSTALL_TMP_DIR}/claude-plugin-codex" >/dev/null 2>&1
     rsync -a \
       --exclude '.git' \
       --exclude 'node_modules' \
       --exclude '.DS_Store' \
-      "$tmp_dir/claude-plugin-codex/" "${PERSONAL_PLUGIN_DIR}/"
+      "${INSTALL_TMP_DIR}/claude-plugin-codex/" "${PERSONAL_PLUGIN_DIR}/"
     return
   fi
 
