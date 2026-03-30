@@ -33,7 +33,7 @@ curl -fsSL https://raw.githubusercontent.com/jerryjrxie/claude-plugin-codex/main
 That opens a simple interactive installer where you can choose:
 
 - `1` for a personal install in `~/.agents/plugins`
-- `2` for a repo-local install in `./.agents/plugins`
+- `2` for a repo-local install in `./.agents/plugins` when you are running from a local checkout
 
 Then restart Codex, enable the `claude` plugin from the marketplace the script set up, and run:
 
@@ -62,10 +62,17 @@ If you want to script installation, use one of these:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/jerryjrxie/claude-plugin-codex/main/install.sh | bash -s -- --personal
-curl -fsSL https://raw.githubusercontent.com/jerryjrxie/claude-plugin-codex/main/install.sh | bash -s -- --repo
 ```
 
-If you prefer cloning first, these also work:
+Repo-local install requires a clone first:
+
+```bash
+git clone https://github.com/jerryjrxie/claude-plugin-codex.git
+cd claude-plugin-codex
+./install.sh --repo
+```
+
+If you prefer cloning first, personal install also works:
 
 ```bash
 git clone https://github.com/jerryjrxie/claude-plugin-codex.git

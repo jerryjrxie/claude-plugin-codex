@@ -1,13 +1,27 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$SCRIPT_DIR"
+REPO_GIT_URL="https://github.com/jerryjrxie/claude-plugin-codex.git"
+SCRIPT_SOURCE="${BASH_SOURCE[0]:-}"
+if [[ -n "$SCRIPT_SOURCE" && "$SCRIPT_SOURCE" != "bash" && "$SCRIPT_SOURCE" != "-bash" ]]; then
+  SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_SOURCE")" && pwd)"
+  REPO_ROOT="$SCRIPT_DIR"
+  RUNNING_FROM_PIPE=0
+else
+  SCRIPT_DIR=""
+  REPO_ROOT=""
+  RUNNING_FROM_PIPE=1
+fi
+
 PERSONAL_MARKETPLACE_ROOT="${HOME}/.agents/plugins"
 PERSONAL_MARKETPLACE_FILE="${PERSONAL_MARKETPLACE_ROOT}/marketplace.json"
 PERSONAL_PLUGIN_DIR="${PERSONAL_MARKETPLACE_ROOT}/claude-plugin-codex"
-REPO_MARKETPLACE_DIR="${REPO_ROOT}/.agents/plugins"
-REPO_MARKETPLACE_FILE="${REPO_MARKETPLACE_DIR}/marketplace.json"
+REPO_MARKETPLACE_DIR=""
+REPO_MARKETPLACE_FILE=""
+if [[ -n "$REPO_ROOT" ]]; then
+  REPO_MARKETPLACE_DIR="${REPO_ROOT}/.agents/plugins"
+  REPO_MARKETPLACE_FILE="${REPO_MARKETPLACE_DIR}/marketplace.json"
+fi
 
 usage() {
   cat <<'EOF'
@@ -47,6 +61,19 @@ copy_repo_for_personal_install() {
   mkdir -p "$PERSONAL_MARKETPLACE_ROOT"
   rm -rf "$PERSONAL_PLUGIN_DIR"
   mkdir -p "$PERSONAL_PLUGIN_DIR"
+
+  if [[ "$RUNNING_FROM_PIPE" -eq 1 ]]; then
+    local tmp_dir=""
+    tmp_dir="$(mktemp -d)"
+    trap 'rm -rf "$tmp_dir"' EXIT
+    git clone --depth=1 "$REPO_GIT_URL" "$tmp_dir/claude-plugin-codex" >/dev/null 2>&1
+    rsync -a \
+      --exclude '.git' \
+      --exclude 'node_modules' \
+      --exclude '.DS_Store' \
+      "$tmp_dir/claude-plugin-codex/" "${PERSONAL_PLUGIN_DIR}/"
+    return
+  fi
 
   rsync -a \
     --exclude '.git' \
@@ -167,6 +194,13 @@ Next steps:
 EOF
 }
 
+ensure_repo_mode_supported() {
+  if [[ "$RUNNING_FROM_PIPE" -eq 1 ]]; then
+    printf 'Repo install mode requires a local checkout. Use --personal with curl | bash, or clone the repo and run ./install.sh --repo.\n' >&2
+    exit 1
+  fi
+}
+
 INSTALL_MODE=""
 
 while [[ $# -gt 0 ]]; do
@@ -202,6 +236,7 @@ case "$INSTALL_MODE" in
     print_personal_next_steps
     ;;
   repo)
+    ensure_repo_mode_supported
     write_repo_marketplace
     print_repo_next_steps
     ;;
