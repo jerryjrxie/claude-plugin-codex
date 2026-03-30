@@ -1,0 +1,3 @@
+This project is based on the structure and ideas from
+https://github.com/openai/codex-plugin-cc and adapts that workflow into a
+Codex plugin that invokes Claude Code.

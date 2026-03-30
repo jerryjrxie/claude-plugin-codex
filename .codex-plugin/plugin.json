@@ -1,0 +1,29 @@
+{
+  "name": "claude",
+  "version": "1.0.0",
+  "description": "Use Claude Code from Codex to review code or delegate tasks.",
+  "author": {
+    "name": "Jerry Xie"
+  },
+  "homepage": "https://docs.anthropic.com/claude-code",
+  "license": "Apache-2.0",
+  "repository": "https://github.com/jerryjrxie/claude-plugin-codex",
+  "keywords": ["claude", "claude-code", "review", "delegate", "codex"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Claude Code",
+    "shortDescription": "Review code and delegate tasks to Claude Code",
+    "longDescription": "Use Claude Code from inside Codex for code reviews, adversarial reviews, and task delegation.",
+    "developerName": "Jerry Xie",
+    "category": "Coding",
+    "capabilities": ["Interactive", "Write"],
+    "websiteURL": "https://docs.anthropic.com/claude-code",
+    "privacyPolicyURL": "https://www.anthropic.com/legal/privacy",
+    "termsOfServiceURL": "https://www.anthropic.com/legal/commercial-terms",
+    "defaultPrompt": [
+      "Use $claude-review to run a Claude Code review on my changes",
+      "Use $claude-rescue to delegate this task to Claude Code"
+    ],
+    "brandColor": "#D97706"
+  }
+}
