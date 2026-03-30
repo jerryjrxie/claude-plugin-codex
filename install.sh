@@ -19,6 +19,7 @@ PERSONAL_PLUGIN_DIR="${PERSONAL_MARKETPLACE_ROOT}/claude-plugin-codex"
 INSTALL_TMP_DIR=""
 REPO_MARKETPLACE_DIR=""
 REPO_MARKETPLACE_FILE=""
+TTY_INPUT="/dev/tty"
 if [[ -n "$REPO_ROOT" ]]; then
   REPO_MARKETPLACE_DIR="${REPO_ROOT}/.agents/plugins"
   REPO_MARKETPLACE_FILE="${REPO_MARKETPLACE_DIR}/marketplace.json"
@@ -46,7 +47,12 @@ pick_mode_interactive() {
   printf '1. Personal install (Recommended)\n'
   printf '2. Repo-local install\n'
   printf '> '
-  read -r choice
+  if [[ -r "$TTY_INPUT" ]]; then
+    read -r choice < "$TTY_INPUT"
+  else
+    printf '\nInteractive input is unavailable. Falling back to personal install.\n'
+    choice=""
+  fi
 
   case "$choice" in
     1|"") INSTALL_MODE="personal" ;;
@@ -82,6 +88,31 @@ copy_repo_for_personal_install() {
     "${REPO_ROOT}/" "${PERSONAL_PLUGIN_DIR}/"
 }
 
+copy_repo_for_repo_install() {
+  mkdir -p "$REPO_MARKETPLACE_DIR"
+  local repo_plugin_dir="${REPO_MARKETPLACE_DIR}/claude-plugin-codex"
+  rm -rf "$repo_plugin_dir"
+  mkdir -p "$repo_plugin_dir"
+
+  if [[ "$RUNNING_FROM_PIPE" -eq 1 ]]; then
+    INSTALL_TMP_DIR="$(mktemp -d)"
+    trap 'rm -rf "${INSTALL_TMP_DIR:-}"' EXIT
+    git clone --depth=1 "$REPO_GIT_URL" "${INSTALL_TMP_DIR}/claude-plugin-codex" >/dev/null 2>&1
+    rsync -a \
+      --exclude '.git' \
+      --exclude 'node_modules' \
+      --exclude '.DS_Store' \
+      "${INSTALL_TMP_DIR}/claude-plugin-codex/" "${repo_plugin_dir}/"
+    return
+  fi
+
+  rsync -a \
+    --exclude '.git' \
+    --exclude 'node_modules' \
+    --exclude '.DS_Store' \
+    "${REPO_ROOT}/" "${repo_plugin_dir}/"
+}
+
 write_repo_marketplace() {
   mkdir -p "$REPO_MARKETPLACE_DIR"
   cat > "$REPO_MARKETPLACE_FILE" <<'EOF'
@@ -95,7 +126,7 @@ write_repo_marketplace() {
       "name": "claude",
       "source": {
         "source": "local",
-        "path": "./"
+        "path": "./claude-plugin-codex"
       },
       "policy": {
         "installation": "AVAILABLE",
@@ -184,6 +215,7 @@ print_repo_next_steps() {
 Set up the repo-local marketplace for this checkout.
 
 Marketplace: ${REPO_MARKETPLACE_FILE}
+Plugin copy: ${REPO_MARKETPLACE_DIR}/claude-plugin-codex
 
 Next steps:
 1. Restart Codex if it was already open in this repo.
@@ -192,13 +224,6 @@ Next steps:
 4. Install or enable the \`claude\` plugin if it is not already enabled.
 5. Run \`\$claude-setup\` inside Codex.
 EOF
-}
-
-ensure_repo_mode_supported() {
-  if [[ "$RUNNING_FROM_PIPE" -eq 1 ]]; then
-    printf 'Repo install mode requires a local checkout. Use --personal with curl | bash, or clone the repo and run ./install.sh --repo.\n' >&2
-    exit 1
-  fi
 }
 
 INSTALL_MODE=""
@@ -236,7 +261,12 @@ case "$INSTALL_MODE" in
     print_personal_next_steps
     ;;
   repo)
-    ensure_repo_mode_supported
+    if [[ "$RUNNING_FROM_PIPE" -eq 1 ]]; then
+      REPO_ROOT="$PWD"
+      REPO_MARKETPLACE_DIR="${REPO_ROOT}/.agents/plugins"
+      REPO_MARKETPLACE_FILE="${REPO_MARKETPLACE_DIR}/marketplace.json"
+    fi
+    copy_repo_for_repo_install
     write_repo_marketplace
     print_repo_next_steps
     ;;
